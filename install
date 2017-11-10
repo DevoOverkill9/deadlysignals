@@ -1,0 +1,310 @@
+#!/bin/bash
+Black='\033[0;30m'        # Black
+Red='\033[0;31m'          # Red
+Green='\033[0;32m'        # Green
+Yellow='\033[0;33m'       # Yellow
+Blue='\033[0;34m'         # Blue
+Purple='\033[0;35m'       # Purple
+Cyan='\033[0;36m'         # Cyan
+White='\033[0;37m'        # White
+Color_Off='\033[0m'       # Text Reset
+# Bold
+BBlack='\033[1;30m'       # Black
+BRed='\033[1;31m'         # Red
+BGreen='\033[1;32m'       # Green
+BYellow='\033[1;33m'      # Yellow
+BBlue='\033[1;34m'        # Blue
+BPurple='\033[1;35m'      # Purple
+BCyan='\033[1;36m'        # Cyan
+BWhite='\033[1;37m'       # White
+
+if [ $USER != root ]
+	then echo -e "$Red[x]You Don't have root user privileges${Color_Off}"
+	exit
+else
+	clear
+INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"	
+	echo -e """$Yellow
+  _____              _          _  _  _                     
+ |_   _|            | |        | || |(_)                    
+   | |   _ __   ___ | |_  __ _ | || | _  _ __    __ _       
+   | |  |  _ \ / __|| __|/ _  || || || ||  _ \  / _  |      
+  _| |_ | | | |\__ \| |_| (_| || || || || | | || (_| | _  _ 
+ |_____||_| |_||___/ \__|\__,_||_||_||_||_| |_| \__, |(_)(_)
+                                                 __/ |      
+                                                |___/      
+		$Red<$Color_Off Tool Information $Red>$Color_Off
+	
+	[$Cyan 1 $Color_Off]$Blue Tool Name $Red:$Color_Off Deadly Signals
+	[$Cyan 2 $Color_Off]$Blue Version   $Red:$Color_Off 2.2
+	[$Cyan 3 $Color_Off]$Blue Coded By  $Red:$Color_Off 0V3RK!113R
+	[$Cyan 4 $Color_Off]$Blue Tool Type $Red:$Color_Off Fake Access Point Attack
+
+
+	"""
+	echo -e "[${Blue}*${Color_Off}]We gonne install some tools to your system\n"
+	read -p "Continue? (y,n): " yn
+
+		## Run Debian installation ##
+
+	if [ -d /etc/apt ]
+		then
+		echo -e "[${Green}+${Color_Off}]system : ${Blue}Debian${Color_Off}"
+
+		case $yn in
+		[Yy]* )
+			#update
+			echo -e "[${BBlue}*${Color_Off}]Updating your system\n"
+			sleep 1
+			echo -e "[${Yellow}!${Color_Off}]it may take some time\n"
+			apt-get -qq update
+			if [ $? != 0 ]
+				then echo -e $INSTALLING_ERROR
+				exit 1
+			fi
+			#dnsmasq
+			echo -e "[${BBlue}*${Color_Off}]Install DNS Masq"
+			apt-get -qq install dnsmasq
+			if [ $? != 0 ]
+				then echo -e $INSTALLING_ERROR
+				exit 1
+			fi
+			
+			echo -e "[${BBlue}*${Color_Off}]Install hostapd"
+			apt-get -qq install hostapd
+			if [ $? != 0 ]
+				then echo -e $INSTALLING_ERROR
+				exit 1
+			fi
+
+			echo -e "[${BBlue}*${Color_Off}]Install iw"
+			apt-get -qq install iw
+			if [ $? != 0 ]
+				then echo -e $INSTALLING_ERROR
+				exit 1
+			fi
+			echo -e "[${BBlue}*${Color_Off}]Install wvdial"
+			apt-get -qq install wvdial
+			if [ $? != 0 ]
+				then echo -e $INSTALLING_ERROR
+				exit 1
+			fi
+			echo -e "[${BBlue}*${Color_Off}]Install uDhcpd"
+			apt-get -qq install udhcpd
+			if [ $? != 0 ]
+				then echo -e $INSTALLING_ERROR
+				exit 1
+			fi
+			echo -e "[${BBlue}*${Color_Off}]Install uDhcpc"
+			apt-get -qq install udhcpc
+			if [ $? != 0 ]
+				then echo -e $INSTALLING_ERROR
+				exit 1
+			fi
+			echo -e "[${BBlue}*${Color_Off}]Install bridge utils"
+			apt-get -qq install bridge-utils
+			if [ $? != 0 ]
+				then echo -e $INSTALLING_ERROR
+				exit 1
+			fi			                                                                                                   
+			echo -e "[${BBlue}*${Color_Off}]Install MacChanger"
+			apt-get -qq install macchanger
+			if [ $? != 0 ]
+				then echo $INSTALLING_ERROR
+				exit 1
+			fi
+			
+			echo -e "[${BBlue}*${Color_Off}]Install openssl"
+			apt-get -qq install openssl
+			if [ $? != 0 ]
+				then echo $INSTALLING_ERROR
+				exit 1
+			fi
+
+			echo -e "[${BBlue}*${Color_Off}]Install wpa_supplicant"
+			apt-get -qq install wpasupplicant
+			if [ $? != 0 ]
+				then echo $INSTALLING_ERROR
+				exit 1
+			fi
+
+			#air tools
+			echo -e "[${BBlue}*${Color_Off}]Install Air tools"
+			apt-get -qq install aircrack-ng
+			if [ $? != 0 ]
+				then echo -e $INSTALLING_ERROR
+				exit 1
+			fi
+			#iptables
+			echo -e "[${BBlue}*${Color_Off}]Install IpTables"
+			apt-get -qq install iptables
+			if [ $? != 0 ]
+				then echo -e $INSTALLING_ERROR
+				exit 1
+			fi
+			
+			#vde2
+			echo -e "[${BBlue}*${Color_Off}]Install VDE"
+			apt-get -qq install vde2
+			if [ $? != 0 ]
+				then echo -e $INSTALLING_ERROR
+				exit 1
+			fi
+			#apache2
+			echo -e "[${BBlue}*${Color_Off}]Install Apache server"
+			apt-get -qq install apache2
+			if [ $? != 0 ]
+				then echo -e $INSTALLING_ERROR
+				exit 1
+			fi
+
+			echo -e "[${BBlue}*${Color_Off}]Install Beef-xss"
+			apt-get -qq install beef
+			if [ $? != 0 ]
+				then echo -e $INSTALLING_ERROR
+				exit 1
+			fi
+
+			echo -e "[${BBlue}*${Color_Off}]Installing the tool"
+			chmod 777 deadlysignals
+		
+			echo -e "[${Green}+${Color_Off}]Tool has been installed successfully!\n"
+			echo -e "[${Yellow}!${Color_Off}]You can run the tool by typing ${Yellow}sudo ./deadlysignals${Color_Off}"
+			exit 0;;
+		[Nn]* )
+			echo -e "[${Red}x${Color_Off}]Exiting.."
+			exit 0;;
+		* )
+			echo "y = yes , n = no"
+			exit 1;;
+		esac
+	fi
+
+		## Run Arch Installaton ##
+	
+	if [ -d /etc/pacman.d ]
+		then
+		echo -e "[${Green}+${Color_Off}]system : ${Red}Arch${Color_Off}"
+		case $yn in
+			[Yy]* )
+				#update
+				echo -e "[${BBlue}*${Color_Off}]Updating your system"
+				pacman -Ssy
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi
+				#dnsmasq
+				echo -e "[${BBlue}*${Color_Off}]Install DNS Masq"
+				pacman -S --noconfirm dnsmasq
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi
+				#Air tools
+				echo -e "[${BBlue}*${Color_Off}]Install Air tools"
+				pacman -S --noconfirm aircrack-ng
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi
+
+				echo -e "[${BBlue}*${Color_Off}]Install hostapd"
+				pacman -S --noconfirm hostapd
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi
+
+				echo -e "[${BBlue}*${Color_Off}]Install iw"
+				pacman -S --noconfirm iw
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi
+				echo -e "[${BBlue}*${Color_Off}]Install wvdial"
+				pacman -S --noconfirm wvdial
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi
+				echo -e "[${BBlue}*${Color_Off}]Install uDhcpd"
+				pacman -S --noconfirm udhcpd
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi
+				echo -e "[${BBlue}*${Color_Off}]Install uDhcpc"
+				pacman -S --noconfirm udhcpc
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi
+				echo -e "[${BBlue}*${Color_Off}]Install MacChanger"
+				pacman -S --noconfirm macchanger
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi
+				echo -e "[${BBlue}*${Color_Off}]Install wpa_supplicant"
+				pacman -S --noconfirm wpasupplicant
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi
+
+				echo -e "[${BBlue}*${Color_Off}]Install openssl"
+				pacman -S --noconfirm openssl
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi
+
+				echo -e "[${BBlue}*${Color_Off}]Install SSLstrip"
+				pacman -S --noconfirm sslstrip
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi
+
+				echo -e "[${BBlue}*${Color_Off}]Install IpTables"
+				pacman -S --noconfirm iptables
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi
+				echo -e "[${BBlue}*${Color_Off}]Install VDE"
+				pacman -S --noconfirm vde2
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi
+				#apache2
+				echo -e "${BBlue}*${Color_Off}Install Apache Server"
+				pacman -S --noconfirm apache
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi
+				echo -e "${BBlue}*${Color_Off}Install Beef-xss"
+				pacman -S --noconfirm beef
+				if [ $? != 0 ]
+					then echo -e $INSTALLING_ERROR
+					exit 1
+				fi				
+
+				#install tool
+				echo -e "[${BBlue}*${Color_Off}]Installing the tool"
+				chmod 777 deadlysignals
+				echo -e "[${Green}+${Color_Off}]Tool has been installed successfully!\n"
+				echo -e "[${Yellow}!${Color_Off}]You can run the tool by typing ${Yellow}sudo ./deadlysignals${Color_Off}"
+				exit 0;;
+			[Nn]* )
+				echo -e "[${Red}x${Color_Off}]Exiting.."
+				exit 0;;
+			* )
+				echo "y = yes , n = no"
+				exit 1;;
+		esac
+	fi
+fi

