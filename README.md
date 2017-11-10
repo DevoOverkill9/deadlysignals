@@ -31,6 +31,6 @@ sudo ./deadlysignals
 
 3) This tool is tested on TP-LINK TL-WN722N so if had an error with your network card just inform me in github issues section.
 
-4) It's easy to use for everyone and it doesn't need a long explnation.
+4) It's easy to use for everyone and it doesn't need a long explination.
 
 Hope you like the tool and have a nice day :D
