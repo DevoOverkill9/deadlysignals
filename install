@@ -36,7 +36,7 @@ INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"
 		$Red<$Color_Off Tool Information $Red>$Color_Off
 	
 	[$Cyan 1 $Color_Off]$Blue Tool Name $Red:$Color_Off Deadly Signals
-	[$Cyan 2 $Color_Off]$Blue Version   $Red:$Color_Off 2.2
+	[$Cyan 2 $Color_Off]$Blue Version   $Red:$Color_Off 2.5
 	[$Cyan 3 $Color_Off]$Blue Coded By  $Red:$Color_Off 0V3RK!113R
 	[$Cyan 4 $Color_Off]$Blue Tool Type $Red:$Color_Off Fake Access Point Attack
 
@@ -114,6 +114,13 @@ INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"
 				exit 1
 			fi
 			
+			echo -e "[${BBlue}*${Color_Off}]Install mdk3"
+			apt-get -qq install mdk3
+			if [ $? != 0 ]
+				then echo $INSTALLING_ERROR
+				exit 1
+			fi
+
 			echo -e "[${BBlue}*${Color_Off}]Install openssl"
 			apt-get -qq install openssl
 			if [ $? != 0 ]
@@ -260,8 +267,8 @@ INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"
 					exit 1
 				fi
 
-				echo -e "[${BBlue}*${Color_Off}]Install SSLstrip"
-				pacman -S --noconfirm sslstrip
+				echo -e "[${BBlue}*${Color_Off}]Install mdk3"
+				pacman -S --noconfirm mdk3
 				if [ $? != 0 ]
 					then echo -e $INSTALLING_ERROR
 					exit 1
