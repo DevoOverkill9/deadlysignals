@@ -89,18 +89,7 @@ INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"
 				then echo -e $INSTALLING_ERROR
 				exit 1
 			fi
-			echo -e "[${BBlue}*${Color_Off}]Install uDhcpd"
-			apt-get -qq install udhcpd
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
-			fi
-			echo -e "[${BBlue}*${Color_Off}]Install uDhcpc"
-			apt-get -qq install udhcpc
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
-			fi
+			
 			echo -e "[${BBlue}*${Color_Off}]Install bridge utils"
 			apt-get -qq install bridge-utils
 			if [ $? != 0 ]
@@ -123,13 +112,6 @@ INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"
 
 			echo -e "[${BBlue}*${Color_Off}]Install openssl"
 			apt-get -qq install openssl
-			if [ $? != 0 ]
-				then echo $INSTALLING_ERROR
-				exit 1
-			fi
-
-			echo -e "[${BBlue}*${Color_Off}]Install wpa_supplicant"
-			apt-get -qq install wpasupplicant
 			if [ $? != 0 ]
 				then echo $INSTALLING_ERROR
 				exit 1
@@ -235,26 +217,9 @@ INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"
 					then echo -e $INSTALLING_ERROR
 					exit 1
 				fi
-				echo -e "[${BBlue}*${Color_Off}]Install uDhcpd"
-				pacman -S --noconfirm udhcpd
-				if [ $? != 0 ]
-					then echo -e $INSTALLING_ERROR
-					exit 1
-				fi
-				echo -e "[${BBlue}*${Color_Off}]Install uDhcpc"
-				pacman -S --noconfirm udhcpc
-				if [ $? != 0 ]
-					then echo -e $INSTALLING_ERROR
-					exit 1
-				fi
+				
 				echo -e "[${BBlue}*${Color_Off}]Install MacChanger"
 				pacman -S --noconfirm macchanger
-				if [ $? != 0 ]
-					then echo -e $INSTALLING_ERROR
-					exit 1
-				fi
-				echo -e "[${BBlue}*${Color_Off}]Install wpa_supplicant"
-				pacman -S --noconfirm wpasupplicant
 				if [ $? != 0 ]
 					then echo -e $INSTALLING_ERROR
 					exit 1
@@ -293,7 +258,7 @@ INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"
 					then echo -e $INSTALLING_ERROR
 					exit 1
 				fi
-				echo -e "${BBlue}*${Color_Off}Install Beef-xss"
+				echo -e "[${BBlue}*${Color_Off}]Install Beef-xss"
 				pacman -S --noconfirm beef
 				if [ $? != 0 ]
 					then echo -e $INSTALLING_ERROR
