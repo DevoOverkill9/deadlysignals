@@ -198,20 +198,11 @@ function check_nic_support {
 	echo -e "[${Blue}*${Color_Off}]Check NIC Support AP"
 	NIC_SUPPORT=$(iw list | grep "Device supports AP scan")
 	if [ $? != 0 ]
-		then echo -e "[${Red}x${Color_Off}]Your Wireless card doesn't have capability to act as AccessPoint"
+		then echo -e "[${Red}x${Color_Off}]Your Wireless card doesn't met the requirements to act as AccessPoint"
 		exit 1
 	fi
 }
 
-function check_nl80211 {
-
-	echo -e "[${BBlue}*${Color_Off}]Check NL80211"
-	NL_SUPPORT=$(lsmod | grep ath)
-	if [ $? != 0 ]
-		then echo -e "[${Red}x${Color_Off}]Your Wireless card doesn't capability to act as AccessPoint"
-		exit 1
-	fi
-}
 
 function check_firewall {
 	echo -e "[${BBlue}*${Color_Off}]check_firewall"
@@ -265,6 +256,20 @@ function Informations {
 		echo -e "\n[${Blue}?${Color_Off}]Which interface you will use to broadcast your wifi signal?"
 		header
 		read BROADCAST_INTERFACE
+		
+		## NL80211 Check ##
+		printf "[${Blue}*${Color_Off}]Check NL80211 ${Red}"
+		NETWORK_CARD=$(ls /sys/class/$BROADCAST_INTERFACE/device/module/drivers/ | sed 's/usb://')
+		NL_SUPPORT=$(modinfo $NETWORK_CARD | grep mac80211 > /dev/null)
+		
+		if [$? != 0]
+			then echo -e "\n${Color_Off}[${Red}x${Color_Off}]Your wireless card doesn't met the requirements to act as AccessPoint"
+			exit 1
+		else
+			printf "${Green}.. OK${Color_Off}\n"
+		fi
+		
+
 		echo -e "\n[${Blue}?${Color_Off}]Which interface you will use to provide the internet connection?"
 		header
 		read ONLINE_INTERFACE
@@ -698,11 +703,10 @@ function main {
 	check_root
 	check_system
 	sleep 0.1
-	check_nl80211
-	sleep 0.1
 	check_nic_support
 	sleep 0.1
 	check_firewall
+	sleep 0.1
 	check_files
 	banner
 	Informations
