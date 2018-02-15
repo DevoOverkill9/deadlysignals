@@ -99,21 +99,21 @@ INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"
 			echo -e "[${BBlue}*${Color_Off}]Install MacChanger"
 			apt-get -qq install macchanger
 			if [ $? != 0 ]
-				then echo $INSTALLING_ERROR
+				then echo -e $INSTALLING_ERROR
 				exit 1
 			fi
 			
 			echo -e "[${BBlue}*${Color_Off}]Install mdk3"
 			apt-get -qq install mdk3
 			if [ $? != 0 ]
-				then echo $INSTALLING_ERROR
+				then echo -e $INSTALLING_ERROR
 				exit 1
 			fi
 
 			echo -e "[${BBlue}*${Color_Off}]Install openssl"
 			apt-get -qq install openssl
 			if [ $? != 0 ]
-				then echo $INSTALLING_ERROR
+				then echo -e $INSTALLING_ERROR
 				exit 1
 			fi
 
