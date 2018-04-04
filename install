@@ -148,7 +148,7 @@ INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"
 			fi
 
 			echo -e "[${BBlue}*${Color_Off}]Install Beef-xss"
-			apt-get -qq install beef
+			apt-get -qq install beef-xss
 			if [ $? != 0 ]
 				then echo -e $INSTALLING_ERROR
 				exit 1
@@ -259,7 +259,7 @@ INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"
 					exit 1
 				fi
 				echo -e "[${BBlue}*${Color_Off}]Install Beef-xss"
-				pacman -S --noconfirm beef
+				pacman -S --noconfirm beef-xss
 				if [ $? != 0 ]
 					then echo -e $INSTALLING_ERROR
 					exit 1
