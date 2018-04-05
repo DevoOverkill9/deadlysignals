@@ -23,7 +23,25 @@ if [ $USER != root ]
 	exit
 else
 	clear
-INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"	
+INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"
+MARK="[${BBlue}*${Color_Off}]Install $1"
+INSTALL="apt-get -qq install"
+
+function error {
+	echo -e $INSTALLING_ERROR
+	echo -e "\n[${Yellow}!${Color_Off}]${Cyan}Looks like a requierd tool wasn't found in your repositories .. ${Green}We highly recommend to add kali linux repositories temporary to install the requierd tools then we will remove it${Color_Off}"
+	printf "\n[${Blue}?${Color_Off}]Accept?(y/n) "
+	read REPO_ADD
+	if [[ $REPO_ADD -eq "y" ]]; then
+		echo -e "[${Green}+${Color_Off}]Adding the repositories.."
+		apt-key adv --keyserver pgp.mit.edu --recv-keys ED444FF07D8D0BF6
+		echo "#Kali Repos -- Added by deadlysignals --" >> /etc/apt/sources.list
+		echo "deb http://http.kali.org/kali kali-rolling main contrib non-free" >> /etc/apt/sources.list
+		apt-get -qq update
+	else
+		echo -e "[${Red}x${Color_Off}]Exiting..";exit 1
+	fi
+}
 	echo -e """$Yellow
   _____              _          _  _  _                     
  |_   _|            | |        | || |(_)                    
@@ -54,109 +72,116 @@ INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"
 		case $yn in
 		[Yy]* )
 			#update
-			echo -e "[${BBlue}*${Color_Off}]Updating your system\n"
+			echo -e "[${BBlue}*${Color_Off}]Updating repositories..\n"
 			sleep 1
 			echo -e "[${Yellow}!${Color_Off}]it may take some time\n"
 			apt-get -qq update
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
-			fi
-			#dnsmasq
-			echo -e "[${BBlue}*${Color_Off}]Install DNS Masq"
-			apt-get -qq install dnsmasq
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
+			if [[ $? != 0 ]]; then echo -e "[${Red}x${Color_Off}]Error while updating your repositories!";exit 1;fi
+
+			
+			echo -e $MARK DnsMasq
+			$INSTALL dnsmasq
+			if [[ $? != 0 ]]; then
+				error
+				$INSTALL dnsmasq
 			fi
 			
-			echo -e "[${BBlue}*${Color_Off}]Install hostapd"
-			apt-get -qq install hostapd
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
+			echo -e $MARK Hostapd
+			$INSTALL hostapd
+			if [[ $? != 0 ]]; then
+				error
+				$INSTALL hostapd
 			fi
 
-			echo -e "[${BBlue}*${Color_Off}]Install iw"
-			apt-get -qq install iw
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
+			echo -e $MARK iw
+			$INSTALL iw
+			if [[ $? != 0 ]]; then
+				error
+				$INSTALL iw
 			fi
-			echo -e "[${BBlue}*${Color_Off}]Install wvdial"
-			apt-get -qq install wvdial
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
+
+			echo -e $MARK wvdial
+			$INSTALL wvdial
+			if [[ $? != 0 ]]; then
+				error
+				$INSTALL wvdial
 			fi
 			
-			echo -e "[${BBlue}*${Color_Off}]Install bridge utils"
-			apt-get -qq install bridge-utils
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
-			fi			                                                                                                   
-			echo -e "[${BBlue}*${Color_Off}]Install MacChanger"
-			apt-get -qq install macchanger
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
+			echo -e $MARK bridge-utils
+			$INSTALL bridge-utils
+			if [[ $? != 0 ]]; then
+				error
+				$INSTALL bridge-utils
+			fi
+
+			echo -e $MARK macchanger
+			$INSTALL macchanger
+			if [[ $? != 0 ]]; then
+				error
+				$INSTALL macchanger
 			fi
 			
-			echo -e "[${BBlue}*${Color_Off}]Install mdk3"
-			apt-get -qq install mdk3
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
+			echo -e $MARK mdk3
+			$INSTALL mdk3
+			if [[ $? != 0 ]]; then
+				error
+				$INSTALL mdk3
 			fi
 
-			echo -e "[${BBlue}*${Color_Off}]Install openssl"
-			apt-get -qq install openssl
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
+			echo -e $MARK openssl
+			$INSTALL openssl
+			if [[ $? != 0 ]]; then
+				error
+				$INSTALL openssl
 			fi
 
-			#air tools
-			echo -e "[${BBlue}*${Color_Off}]Install Air tools"
-			apt-get -qq install aircrack-ng
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
+			echo -e $MARK aircrack-ng
+			$INSTALL aircrack-ng
+			if [[ $? != 0 ]]; then
+				error
+				$INSTALL aircrack-ng
 			fi
-			#iptables
-			echo -e "[${BBlue}*${Color_Off}]Install IpTables"
-			apt-get -qq install iptables
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
+
+			echo -e $MARK iptables
+			$INSTALL iptables
+			if [[ $? != 0 ]]; then
+				error
+				$INSTALL iptables
 			fi
 			
-			#vde2
-			echo -e "[${BBlue}*${Color_Off}]Install VDE"
-			apt-get -qq install vde2
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
-			fi
-			#apache2
-			echo -e "[${BBlue}*${Color_Off}]Install Apache server"
-			apt-get -qq install apache2
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
+			echo -e $MARK vde2
+			$INSTALL vde2
+			if [[ $? != 0 ]]; then
+				error
+				$INSTALL vde2
 			fi
 
-			echo -e "[${BBlue}*${Color_Off}]Install Beef-xss"
-			apt-get -qq install beef-xss
-			if [ $? != 0 ]
-				then echo -e $INSTALLING_ERROR
-				exit 1
+			echo -e $MARK reaver
+			$INSTALL reaver
+			if [[ $? != 0 ]]; then
+				error
+				$INSTALL reaver
 			fi
 
+			echo -e $MARK apache2
+			$INSTALL apache2
+			if [[ $? != 0 ]]; then
+				error
+				$INSTALL apache2
+			fi
+
+			echo -e $MARK beef-xss
+			$INSTALL beef-xss
+			if [[ $? != 0 ]]; then
+				error
+				$INSTALL beef-xss
+			fi
+			
 			echo -e "[${BBlue}*${Color_Off}]Installing the tool"
 			chmod 777 deadlysignals
-		
+			more /etc/apt/sources.list | grep 'Added by deadlysignals' > /dev/null
+			if [[ $? -eq 0 ]]; then sed -i '/Added by deadlysignals/d' /etc/apt/sources.list;sed -i '/kali/d' /etc/apt/sources.list;fi
+
 			echo -e "[${Green}+${Color_Off}]Tool has been installed successfully!\n"
 			echo -e "[${Yellow}!${Color_Off}]You can run the tool by typing ${Yellow}sudo ./deadlysignals${Color_Off}"
 			exit 0;;
@@ -177,7 +202,7 @@ INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"
 		case $yn in
 			[Yy]* )
 				#update
-				echo -e "[${BBlue}*${Color_Off}]Updating your system"
+				echo -e "[${BBlue}*${Color_Off}]Updating respositories.."
 				pacman -Ssy
 				if [ $? != 0 ]
 					then echo -e $INSTALLING_ERROR
@@ -259,7 +284,7 @@ INSTALLING_ERROR="[${Red}x${Color_Off}]Error while installing requierd tools!"
 					exit 1
 				fi
 				echo -e "[${BBlue}*${Color_Off}]Install Beef-xss"
-				pacman -S --noconfirm beef-xss
+				pacman -S --noconfirm beef
 				if [ $? != 0 ]
 					then echo -e $INSTALLING_ERROR
 					exit 1
