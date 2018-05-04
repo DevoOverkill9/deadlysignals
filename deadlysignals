@@ -358,6 +358,7 @@ range 10.0.0.3 10.0.0.100;
 default-lease-time 1209600;
 max-lease-time 1814400;
 }""" > /etc/dhcp/dhcpd.conf
+	if [[ ! -f /var/lib/dhcp/dhcpd.leases ]]; then touch /var/lib/dhcp/dhcpd.leases; fi
 	dhcpd $MON_INTERFACE  2> /dev/null &
 }
 
