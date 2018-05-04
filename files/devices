@@ -60,7 +60,7 @@ function connected_devices {
 		
 		for mac in "${DEVICE_MAC[@]}";do
 			printf "  \e[0;32m$mac    "
-			DEVICE_MAC_NAME=`curl -s http://api.macvendors.com/$mac`
+			DEVICE_MAC_NAME=`curl -s https://macvendors.co/api/$mac/pipe | sed 's/|.*//'`
 			for mac_name in "${DEVICE_MAC_NAME[@]}";do
 				printf "  \e[0;34m$mac_name\e\033[0m"
 			done
