@@ -19,52 +19,34 @@ BPurple='\033[1;35m'      # Purple
 BCyan='\033[1;36m'        # Cyan
 BWhite='\033[1;37m'       # White
 
-function banner {
-	echo -e """ ${Purple}
-	 __               __              
-	|  \ _ _  _||    (_ . _  _  _ | _ 
-	|__/(-(_|(_||\/  __)|(_)| )(_||_) 
-	             /       _/           
-	  	${Green}Connection Board
+arp-scan --interface $1 10.0.0.1/24 | sed '/Interface/d;/WARNING/d;/Starting/d;/kernel/d;/arp-scan/d' > arp
+echo
+devices=$(more arp | awk '{print $1}' | sort -u)
+#gateway=$( more arp | grep -i gateway | awk '{print $2}' | sed -e 's/(//g' | sed -e 's/)//g')
+device_mac=$(more arp | awk '{print $2}' | sort -u)
+hex_chars=$(more arp | awk '{print $2}' | sed -e 's/\:/\-/g' | tr [:lower:] [:upper:] | sed -e 's/^\(.\{8\}\).*/\1/' | sort -u)
+more arp >> .attemptsip
+attempts=$(more .attemptsip | awk '{print $2}' | sort -u | sed '/^$/d' | wc -l)
+###################################################################33
+echo -e """ ${Purple}
+ __               __
+|  \ _ _  _||    (_ . _  _  _ | _
+|__/(-(_|(_||\/  __)|(_)| )(_||_)
+	     /       _/
+    ${Green}Connection Board${Color_Off}\n"""
 
-	${Color_Off}\n"""
-}
-
-function board_info {
-	#ap_name=$(awk -F'"' '/^APNAME=/ {print $2}' deadlysignals )
-	SIGNAL_NAME=($(more .signalname))
-	echo -e "[${BBlue}*${Color_Off}]Access Point name ${Purple}  :${Color_Off} $SIGNAL_NAME" ## PUT THE NAME HERE! ##
-	echo -e "[${BBlue}*${Color_Off}]Gateway IP ${Purple}         :${Color_Off} 10.0.0.1" 
-}
-
-function connected_devices {
-	#source deadlysignals
-	banner
-	board_info
-	DEVICE_IP=($(nmap -PR -sn -n -oG - 10.0.0.2-255 2>&1 | grep Host | awk '{print $2}'))
-	touch .attemptsip
-	if  grep -Fxq "$DEVICE_IP" .attemptsip
-		then sleep 0.0 #Shut_up
-	else
-		echo $DEVICE_IP >> .attemptsip
-	fi
-	ATTEMPTS=($(more .attemptsip | sed '/^\s*$/d' | wc -l))
-	echo -e "[${BBlue}*${Color_Off}]Connection Attempts ${Purple}:${BRed} $ATTEMPTS${Color_Off}"
-	echo
-	echo "---------------------------------------------------"
-	echo "Device IP   |   Device MAC Address   |  Device Name"
-	for devices in "${DEVICE_IP[@]}";do
-		echo
-		printf "\e[0;33m$devices     "
-		DEVICE_MAC=($(nmap -PR -sn -n $devices 2>&1 | grep -i mac | awk '{print $3}' | tr [:upper:] [:lower:]))
-		
-		for mac in "${DEVICE_MAC[@]}";do
-			printf "  \e[0;32m$mac    "
-			DEVICE_MAC_NAME=`curl -s https://macvendors.co/api/$mac/pipe | sed 's/|.*//'`
-			for mac_name in "${DEVICE_MAC_NAME[@]}";do
-				printf "  \e[0;34m$mac_name\e\033[0m"
-			done
+echo -e "${White}[${Red}*${Color_Off}${White}]Attempts: ${Green}$attempts${White} "
+echo -e """${White}----------------------------------------------------------------
+${Blue}Device IP   ${Yellow} |   ${Blue}Device MAC Address	${Yellow}|   ${Blue}Device Name ${Green}
+"""
+echo -e "${Purple}"
+for device in ${devices[@]};do 
+		printf "$devices   	   "
+		for mac in ${device_mac[@]};do
+				printf "$mac"
+				for name in ${hex_chars};do
+						more /usr/share/maclookup/oui.txt | grep $name | sed -e 's/(hex)//g' | cut -d" " -f4-30
+						echo
+				done
 		done
-	done
-}
-connected_devices
+done
